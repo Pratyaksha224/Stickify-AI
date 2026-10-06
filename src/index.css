@@ -66,3 +66,31 @@ textarea {
   line-height: 1.5;
   color: inherit;
 }
+
+/* Canvas Backgrounds */
+.bg-dark {
+  background-color: #0c0e16;
+}
+.bg-dots {
+  background-color: #0f121d;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.15) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+.bg-grid {
+  background-color: #0d1117;
+  background-image: linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 30px 30px;
+}
+.bg-blueprint {
+  background-color: #102a45;
+  background-image: linear-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+.bg-corkboard {
+  background-color: #7a5230;
+  background-image: radial-gradient(#634125 15%, transparent 16%), radial-gradient(#634125 15%, transparent 16%);
+  background-size: 20px 20px;
+  background-position: 0 0, 10px 10px;
+}
