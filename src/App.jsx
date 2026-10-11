@@ -1,16 +1,12 @@
-import React, { useState } from 'react';
-import { fakeData } from './assets/fakeData';
-import NoteCard from './components/NoteCard';
+import React from 'react';
+import NotesPage from './pages/NotesPage';
+import NotesProvider from './context/NoteContext';
 
 function App() {
-  const [notes, setNotes] = useState(fakeData);
-
   return (
-    <div id="app">
-      {notes.map(note => (
-        <NoteCard key={note.$id} note={note} />
-      ))}
-    </div>
+    <NotesProvider>
+      <NotesPage />
+    </NotesProvider>
   );
 }
 
