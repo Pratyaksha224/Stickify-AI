@@ -1,3 +1,10 @@
+import { parseJsonSafe } from './parser';
+import { 
+  writingAssistantPrompt, 
+  titleGeneratorPrompt, 
+  rewriteTonePrompt 
+} from './promptTemplates';
+
 export const callGroq = async (systemInstruction, userPrompt, jsonMode = false) => {
     const apiKey = import.meta.env.VITE_GROQ_API_KEY;
     
@@ -39,4 +46,21 @@ export const callGroq = async (systemInstruction, userPrompt, jsonMode = false) 
         console.error("AI Error:", error);
         throw error;
     }
+};
+
+// --- Writing Actions ---
+export const improveWriting = async (text, action = 'improve') => {
+    const { system, user } = writingAssistantPrompt(text, action);
+    return await callGroq(system, user, false);
+};
+
+export const rewriteNote = async (text, tone = 'professional') => {
+    const { system, user } = rewriteTonePrompt(text, tone);
+    return await callGroq(system, user, false);
+};
+
+export const generateTitle = async (text) => {
+    const { system, user } = titleGeneratorPrompt(text);
+    const raw = await callGroq(system, user, false);
+    return raw.trim().replace(/^"|"$/g, '');
 };
