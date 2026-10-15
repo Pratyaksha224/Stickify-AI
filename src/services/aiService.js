@@ -2,6 +2,7 @@ import { parseJsonSafe } from './parser';
 import { 
   writingAssistantPrompt, 
   titleGeneratorPrompt, 
+  categorizerPrompt, 
   rewriteTonePrompt 
 } from './promptTemplates';
 
@@ -63,4 +64,11 @@ export const generateTitle = async (text) => {
     const { system, user } = titleGeneratorPrompt(text);
     const raw = await callGroq(system, user, false);
     return raw.trim().replace(/^"|"$/g, '');
+};
+
+export const categorizeNote = async (text) => {
+    const { system, user } = categorizerPrompt(text);
+    const raw = await callGroq(system, user, true);
+    const data = parseJsonSafe(raw, { category: 'Other', confidence: 0 });
+    return data.category || 'Other';
 };
