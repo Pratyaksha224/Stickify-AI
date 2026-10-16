@@ -2,7 +2,8 @@ import { parseJsonSafe } from './parser';
 import { 
   writingAssistantPrompt, 
   titleGeneratorPrompt, 
-  categorizerPrompt, 
+  categorizerPrompt,
+  priorityDetectorPrompt, 
   rewriteTonePrompt 
 } from './promptTemplates';
 
@@ -71,4 +72,11 @@ export const categorizeNote = async (text) => {
     const raw = await callGroq(system, user, true);
     const data = parseJsonSafe(raw, { category: 'Other', confidence: 0 });
     return data.category || 'Other';
+};
+
+export const detectPriority = async (text) => {
+    const { system, user } = priorityDetectorPrompt(text);
+    const raw = await callGroq(system, user, true);
+    const data = parseJsonSafe(raw, { priority: 'LOW', reason: '' });
+    return data;
 };
