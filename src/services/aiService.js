@@ -3,7 +3,8 @@ import {
   writingAssistantPrompt, 
   titleGeneratorPrompt, 
   categorizerPrompt,
-  priorityDetectorPrompt, 
+  priorityDetectorPrompt,
+  taskExtractorPrompt, 
   rewriteTonePrompt 
 } from './promptTemplates';
 
@@ -79,4 +80,11 @@ export const detectPriority = async (text) => {
     const raw = await callGroq(system, user, true);
     const data = parseJsonSafe(raw, { priority: 'LOW', reason: '' });
     return data;
+};
+
+export const extractTasks = async (text) => {
+    const { system, user } = taskExtractorPrompt(text);
+    const raw = await callGroq(system, user, true);
+    const data = parseJsonSafe(raw, { tasks: [] });
+    return data.tasks || [];
 };
