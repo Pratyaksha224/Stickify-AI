@@ -5,6 +5,11 @@ import { setNewOffset, setZIndex, bodyParser } from '../utils';
 import Spinner from '../icons/Spinner';
 import { useContext } from 'react';
 import { NoteContext } from '../context/NoteContext';
+import AiAssistant from './AiAssistant';
+import CategoryBadge from './CategoryBadge';
+import PriorityIndicator from './PriorityIndicator';
+import TaskList from './TaskList';
+import SummaryPanel from './SummaryPanel';
 import { SHAPES, ShapesPanel } from './ShapesMenu';
 import DrawingOverlay from './DrawingOverlay';
 import EmojiPickerBtn from './EmojiPickerBtn';
@@ -431,8 +436,8 @@ const NoteCard = ({ note }) => {
       onTouchEnd={touchEnd}
     >
       {/* Header */}
-      
-      
+      <CategoryBadge category={currentMeta.category} />
+      <PriorityIndicator priority={currentMeta.priority} reason={currentMeta.priorityReason} />
       
       <div className="card-header card-drag-handle" style={headerStyle}>
         <div style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '13px', fontWeight: 'bold', marginRight: '8px' }}>
@@ -561,7 +566,15 @@ const NoteCard = ({ note }) => {
           style={textColor ? { color: textColor } : {}}
           data-placeholder="Write your note..."
         />
-                              </div>
+        <AiAssistant
+          noteId={note.$id}
+          getText={() => editorRef.current?.innerText || ''}
+          onTextUpdate={handleAiResult}
+          colors={colors}
+        />
+        <SummaryPanel summary={currentMeta.summary} />
+        <TaskList noteId={note.$id} initialTasks={currentMeta.tasks} />
+      </div>
 
       {/* ── Resize Handles ── */}
       {/* Right edge */}
