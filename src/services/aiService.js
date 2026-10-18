@@ -4,7 +4,8 @@ import {
   titleGeneratorPrompt, 
   categorizerPrompt,
   priorityDetectorPrompt,
-  taskExtractorPrompt, 
+  taskExtractorPrompt,
+  smartSearchPrompt, 
   rewriteTonePrompt 
 } from './promptTemplates';
 
@@ -87,4 +88,11 @@ export const extractTasks = async (text) => {
     const raw = await callGroq(system, user, true);
     const data = parseJsonSafe(raw, { tasks: [] });
     return data.tasks || [];
+};
+
+export const expandSearchQuery = async (query) => {
+    const { system, user } = smartSearchPrompt(query);
+    const raw = await callGroq(system, user, true);
+    const data = parseJsonSafe(raw, { keywords: [] });
+    return data.keywords || [];
 };

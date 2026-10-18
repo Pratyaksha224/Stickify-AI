@@ -2,12 +2,43 @@ import NoteCard from "../components/NoteCard";
 import CanvasImage from "../components/CanvasImage";
 import CanvasShape from "../components/CanvasShape";
 import Controls from "../components/Controls";
+import SearchBar from "../components/SearchBar";
 import DrawingOverlay from "../components/DrawingOverlay";
-import { useContext, useCallback } from "react";
+import { useContext, useCallback, useState, useEffect } from "react";
 import { NoteContext } from "../context/NoteContext";
 
 const NotesPage = () => {
-  const { notes, background, canvasImages, setCanvasImages, canvasShapes, setCanvasShapes, isGlobalDrawing, setIsGlobalDrawing, db } = useContext(NoteContext);
+  const { notes, searchQuery, background, canvasImages, setCanvasImages, canvasShapes, setCanvasShapes, isGlobalDrawing, setIsGlobalDrawing, db, aiMeta } = useContext(NoteContext);
+  const [aiKeywords, setAiKeywords] = useState([]);
+
+  useEffect(() => {
+    const handleAiKeywords = (e) => setAiKeywords(e.detail || []);
+    window.addEventListener('ai-search-expanded', handleAiKeywords);
+    return () => window.removeEventListener('ai-search-expanded', handleAiKeywords);
+  }, []);
+
+  useEffect(() => {
+    if (!searchQuery) setAiKeywords([]);
+  }, [searchQuery]);
+
+  const filteredNotes = searchQuery.trim()
+    ? notes.filter(note => {
+        let bodyText = '';
+        try {
+          bodyText = JSON.parse(note.body) || '';
+        } catch {
+          bodyText = (note.body || '');
+        }
+        
+        const noteMeta = aiMeta?.[note.$id] || {};
+        const metaText = `${noteMeta.title || ''} ${noteMeta.category || ''} ${noteMeta.summary || ''} ${noteMeta.priority || ''}`.toLowerCase();
+        
+        const searchTerms = [searchQuery, ...aiKeywords].map(t => t.toLowerCase());
+        const fullText = (bodyText + ' ' + metaText).toLowerCase();
+
+        return searchTerms.some(term => fullText.includes(term));
+      })
+    : notes;
 
   const handleDeleteCanvasImage = useCallback(async (id) => {
     setCanvasImages(prev => prev.filter(img => img.$id !== id));
@@ -58,8 +89,8 @@ const NotesPage = () => {
         }}
     >
       <DrawingOverlay isActive={isGlobalDrawing} onSave={handleSaveGlobalDrawing} strokeColor={strokeColor} />
-      
-      {notes.map(note => (
+      <SearchBar />
+      {filteredNotes.map(note => (
         <NoteCard key={note.$id} note={note} />
       ))}
       {canvasImages.map(img => (
