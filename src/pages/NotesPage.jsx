@@ -7,6 +7,8 @@ import DrawingOverlay from "../components/DrawingOverlay";
 import { useContext, useCallback, useState, useEffect } from "react";
 import { NoteContext } from "../context/NoteContext";
 
+import ReminderToast from "../components/ReminderToast";
+
 const NotesPage = () => {
   const { notes, searchQuery, background, canvasImages, setCanvasImages, canvasShapes, setCanvasShapes, isGlobalDrawing, setIsGlobalDrawing, db, aiMeta } = useContext(NoteContext);
   const [aiKeywords, setAiKeywords] = useState([]);
@@ -17,6 +19,7 @@ const NotesPage = () => {
     return () => window.removeEventListener('ai-search-expanded', handleAiKeywords);
   }, []);
 
+  // Clear keywords if search query goes away
   useEffect(() => {
     if (!searchQuery) setAiKeywords([]);
   }, [searchQuery]);
@@ -30,7 +33,7 @@ const NotesPage = () => {
           bodyText = (note.body || '');
         }
         
-        const noteMeta = aiMeta?.[note.$id] || {};
+        const noteMeta = aiMeta[note.$id] || {};
         const metaText = `${noteMeta.title || ''} ${noteMeta.category || ''} ${noteMeta.summary || ''} ${noteMeta.priority || ''}`.toLowerCase();
         
         const searchTerms = [searchQuery, ...aiKeywords].map(t => t.toLowerCase());
@@ -43,20 +46,20 @@ const NotesPage = () => {
   const handleDeleteCanvasImage = useCallback(async (id) => {
     setCanvasImages(prev => prev.filter(img => img.$id !== id));
     try {
-      await db?.canvasImages?.delete(id);
+      await db.canvasImages.delete(id);
     } catch (err) {
       console.error('Failed to delete canvas image:', err);
     }
-  }, [setCanvasImages, db]);
+  }, [setCanvasImages]);
 
   const handleDeleteCanvasShape = useCallback(async (id) => {
     setCanvasShapes(prev => prev.filter(shape => shape.$id !== id));
     try {
-      await db?.canvasShapes?.delete(id);
+      await db.canvasShapes.delete(id);
     } catch (err) {
       console.error('Failed to delete canvas shape:', err);
     }
-  }, [setCanvasShapes, db]);
+  }, [setCanvasShapes]);
 
   const handleSaveGlobalDrawing = async (drawData) => {
     setIsGlobalDrawing(false);
@@ -67,10 +70,8 @@ const NotesPage = () => {
         size: JSON.stringify({ width: drawData.size.width, height: drawData.size.height }),
         isSticker: drawData.isSticker
       };
-      if (db?.canvasShapes) {
-        const response = await db.canvasShapes.create(payload);
-        setCanvasShapes(prev => [...prev, response]);
-      }
+      const response = await db.canvasShapes.create(payload);
+      setCanvasShapes(prev => [...prev, response]);
     } catch (err) {
       console.error('Failed to save drawing:', err);
     }
@@ -83,12 +84,15 @@ const NotesPage = () => {
         id="app" 
         className={`bg-${background || 'dark'}`}
         onClick={(e) => {
+            // If clicking directly on the background (not a child), deselect
             if (e.target.id === 'app') {
                 window.dispatchEvent(new Event('globalDeselect'));
             }
         }}
     >
+      <ReminderToast />
       <DrawingOverlay isActive={isGlobalDrawing} onSave={handleSaveGlobalDrawing} strokeColor={strokeColor} />
+      
       <SearchBar />
       {filteredNotes.map(note => (
         <NoteCard key={note.$id} note={note} />

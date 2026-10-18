@@ -2,14 +2,15 @@ import { parseJsonSafe } from './parser';
 import { 
   writingAssistantPrompt, 
   titleGeneratorPrompt, 
-  categorizerPrompt,
+  categorizerPrompt, 
+  taskExtractorPrompt, 
   priorityDetectorPrompt,
-  taskExtractorPrompt,
-  smartSearchPrompt, 
-  rewriteTonePrompt 
+  rewriteTonePrompt,
+  smartSearchPrompt,
+  reminderDetectorPrompt 
 } from './promptTemplates';
 
-export const callGroq = async (systemInstruction, userPrompt, jsonMode = false) => {
+const callGroq = async (systemInstruction, userPrompt, jsonMode = false) => {
     const apiKey = import.meta.env.VITE_GROQ_API_KEY;
     
     if (!apiKey || apiKey === 'your_groq_api_key_here') {
@@ -23,7 +24,7 @@ export const callGroq = async (systemInstruction, userPrompt, jsonMode = false) 
                 { role: "system", content: systemInstruction },
                 { role: "user", content: userPrompt }
             ],
-            temperature: jsonMode ? 0.2 : 0.7,
+            temperature: jsonMode ? 0.2 : 0.7, // Lower temp for JSON to ensure strictness
         };
 
         if (jsonMode) {
@@ -63,9 +64,10 @@ export const rewriteNote = async (text, tone = 'professional') => {
     return await callGroq(system, user, false);
 };
 
+// --- Meta Actions (JSON) ---
 export const generateTitle = async (text) => {
     const { system, user } = titleGeneratorPrompt(text);
-    const raw = await callGroq(system, user, false);
+    const raw = await callGroq(system, user, false); // Title doesn't need strict JSON
     return raw.trim().replace(/^"|"$/g, '');
 };
 
@@ -76,13 +78,6 @@ export const categorizeNote = async (text) => {
     return data.category || 'Other';
 };
 
-export const detectPriority = async (text) => {
-    const { system, user } = priorityDetectorPrompt(text);
-    const raw = await callGroq(system, user, true);
-    const data = parseJsonSafe(raw, { priority: 'LOW', reason: '' });
-    return data;
-};
-
 export const extractTasks = async (text) => {
     const { system, user } = taskExtractorPrompt(text);
     const raw = await callGroq(system, user, true);
@@ -90,9 +85,42 @@ export const extractTasks = async (text) => {
     return data.tasks || [];
 };
 
+export const detectPriority = async (text) => {
+    const { system, user } = priorityDetectorPrompt(text);
+    const raw = await callGroq(system, user, true);
+    const data = parseJsonSafe(raw, { priority: 'LOW', reason: '' });
+    return data;
+};
+
 export const expandSearchQuery = async (query) => {
     const { system, user } = smartSearchPrompt(query);
     const raw = await callGroq(system, user, true);
     const data = parseJsonSafe(raw, { keywords: [] });
     return data.keywords || [];
+};
+
+export const detectReminders = async (text) => {
+    const { system, user } = reminderDetectorPrompt(text);
+    const raw = await callGroq(system, user, true);
+    const data = parseJsonSafe(raw, { hasReminder: false });
+    return data;
+};
+
+// --- Master Analysis Function ---
+export const analyzeNoteFull = async (text) => {
+    // Run meta extractions in parallel
+    const [title, category, tasks, priorityData] = await Promise.all([
+        generateTitle(text),
+        categorizeNote(text),
+        extractTasks(text),
+        detectPriority(text)
+    ]);
+
+    return {
+        title,
+        category,
+        tasks,
+        priority: priorityData.priority,
+        priorityReason: priorityData.reason
+    };
 };
