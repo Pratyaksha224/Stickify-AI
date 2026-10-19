@@ -6,10 +6,12 @@ import ColorPicker from "./ColorPicker";
 import CanvasImageUploader from "./CanvasImageUploader";
 import CanvasShapeSelector from "./CanvasShapeSelector";
 import { useContext, useState, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { NoteContext } from "../context/NoteContext";
 import { BarChart2, PenTool, Trash2, LogOut } from "lucide-react";
 
 const Controls = () => {
+    const navigate = useNavigate();
     const { isGlobalDrawing, setIsGlobalDrawing } = useContext(NoteContext);
             const [showProfile, setShowProfile] = useState(false);
     const popupRef = useRef(null);
@@ -43,6 +45,23 @@ const Controls = () => {
             <StyleControl />
             <CanvasImageUploader />
             <CanvasShapeSelector />
+
+            {/* Dashboard */}
+            <button
+                onClick={() => navigate('/dashboard')}
+                title="AI Dashboard"
+                className="ctrl-btn"
+                style={{
+                    width: '40px', height: '40px', borderRadius: '12px',
+                    background: 'rgba(50, 205, 50, 0.2)',
+                    border: '1px solid rgba(50, 205, 50, 0.4)',
+                    color: '#32CD32', fontSize: '18px', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    transition: 'all 0.2s', marginTop: '4px'
+                }}
+            >
+                <BarChart2 size={18} />
+            </button>
 
                         {/* Freehand Draw */}
             <button
