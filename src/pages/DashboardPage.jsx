@@ -135,7 +135,73 @@ const DashboardPage = () => {
         </div>
       </div>
 
+      {/* ── Migrate Local Data ────────────────────────────────────── */}
+      <div style={{ marginTop: '40px', padding: '24px', borderRadius: '12px', border: '1px solid rgba(255,165,0,0.3)', backgroundColor: 'rgba(255,165,0,0.05)' }}>
+        <h2 style={{ margin: '0 0 8px 0', fontSize: '18px', color: 'rgba(255,255,255,0.9)' }}>📦 Migrate Local Data to Cloud</h2>
+        <p style={{ opacity: 0.6, fontSize: '13px', margin: '0 0 16px 0' }}>Use this once to copy notes saved on this device (IndexedDB) to your cloud account so they appear on all devices.</p>
+        {migrateResult && (
+          <p style={{ color: migrateResult.error ? '#FF3B30' : '#32CD32', fontSize: '14px', marginBottom: '12px' }}>
+            {migrateResult.message}
+          </p>
+        )}
+        <button
+          disabled={migrating}
+          onClick={async () => {
+            setMigrating(true);
+            setMigrateResult(null);
+            try {
+              // Try to open the old Dexie DB that may exist for this user
+              const { Dexie } = await import('dexie');
+              const userId = db?.userId || 'unknown';
+              const oldDbName = `StickifyDB_${userId}`;
+              const exists = await Dexie.exists(oldDbName);
+              if (!exists) {
+                setMigrateResult({ error: false, message: '✅ No old local data found — you are already on cloud sync!' });
+                setMigrating(false);
+                return;
+              }
+              const oldDexie = new Dexie(oldDbName);
+              oldDexie.version(5).stores({
+                notes: '$id, body, colors, position, template',
+                canvasImages: '$id, src, position, size',
+                canvasShapes: '$id, shapeId, html, position, size',
+                aiMeta: '$id, title, category, priority, priorityReason, summary, tasks'
+              });
+              const oldNotes = await oldDexie.notes.toArray();
+              let migrated = 0;
+              for (const note of oldNotes) {
+                const { $id, ...payload } = note;
+                try {
+                  await db.notes.create(payload, $id);
+                  migrated++;
+                } catch (_) { /* skip duplicates */ }
+              }
+              setMigrateResult({ error: false, message: `✅ Successfully migrated ${migrated} note(s) to cloud!` });
+            } catch (err) {
+              console.error('Migration error', err);
+              setMigrateResult({ error: true, message: `❌ Migration failed: ${err.message}` });
+            }
+            setMigrating(false);
+          }}
+          style={{
+            background: migrating ? 'rgba(255,165,0,0.2)' : 'rgba(255,165,0,0.25)',
+            border: '1px solid rgba(255,165,0,0.5)',
+            color: '#FFD700',
+            padding: '10px 20px',
+            borderRadius: '8px',
+            cursor: migrating ? 'not-allowed' : 'pointer',
+            fontWeight: 'bold',
+            fontSize: '14px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+          }}
+        >
+          <CloudUpload size={16} />
+          {migrating ? 'Migrating...' : 'Migrate Local Notes to Cloud'}
+        </button>
       </div>
+    </div>
   );
 };
 
