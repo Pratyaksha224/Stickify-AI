@@ -6,14 +6,16 @@ import ColorPicker from "./ColorPicker";
 import CanvasImageUploader from "./CanvasImageUploader";
 import CanvasShapeSelector from "./CanvasShapeSelector";
 import { useContext, useState, useRef, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { NoteContext } from "../context/NoteContext";
+import { useAuth } from "../context/AuthContext";
+import { useNavigate } from "react-router-dom";
 import { BarChart2, PenTool, Trash2, LogOut } from "lucide-react";
 
 const Controls = () => {
-    const navigate = useNavigate();
     const { isGlobalDrawing, setIsGlobalDrawing } = useContext(NoteContext);
-            const [showProfile, setShowProfile] = useState(false);
+    const { logoutUser, user } = useAuth();
+    const navigate = useNavigate();
+    const [showProfile, setShowProfile] = useState(false);
     const popupRef = useRef(null);
 
     // Close popup when clicking outside
@@ -63,7 +65,7 @@ const Controls = () => {
                 <BarChart2 size={18} />
             </button>
 
-                        {/* Freehand Draw */}
+            {/* Freehand Draw */}
             <button
                 onClick={() => setIsGlobalDrawing(v => !v)}
                 title="Freehand Draw"
@@ -107,7 +109,84 @@ const Controls = () => {
             }}>
                 <ExportImport />
 
-                </div>
+                {/* Profile Avatar with popup */}
+                <div style={{ position: 'relative' }} ref={popupRef}>
+                    <button
+                        onClick={() => setShowProfile(v => !v)}
+                        title={user?.name || user?.email || 'Profile'}
+                        style={{
+                            width: '40px', height: '40px', borderRadius: '50%',
+                            padding: 0, cursor: 'pointer',
+                            border: showProfile ? '2px solid #a78bfa' : '2px solid rgba(255,255,255,0.2)',
+                            overflow: 'hidden',
+                            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            transition: 'border-color 0.2s, box-shadow 0.2s',
+                            boxShadow: showProfile ? '0 0 0 3px rgba(167,139,250,0.3)' : 'none',
+                            flexShrink: 0,
+                        }}
+                    >
+                        {avatarUrl ? (
+                            <img
+                                src={avatarUrl}
+                                alt="Profile"
+                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                onError={e => { e.target.style.display = 'none'; }}
+                            />
+                        ) : (
+                            <span style={{ color: '#fff', fontSize: '14px', fontWeight: 700, fontFamily: 'Inter, sans-serif', lineHeight: 1 }}>
+                                {getInitials()}
+                            </span>
+                        )}
+                    </button>
+
+                    {/* Profile Popup */}
+                    {showProfile && (
+                        <div style={{
+                            position: 'absolute',
+                            bottom: '0',
+                            left: '52px',
+                            background: 'rgba(18, 18, 30, 0.98)',
+                            backdropFilter: 'blur(20px)',
+                            border: '1px solid rgba(255,255,255,0.12)',
+                            borderRadius: '16px',
+                            padding: '16px',
+                            minWidth: '220px',
+                            boxShadow: '0 20px 60px rgba(0,0,0,0.6)',
+                            zIndex: 9999,
+                        }}>
+                            {/* User info row */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '14px' }}>
+                                <div style={{
+                                    width: '42px', height: '42px', borderRadius: '50%',
+                                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    overflow: 'hidden', flexShrink: 0,
+                                    border: '2px solid rgba(167,139,250,0.5)',
+                                }}>
+                                    {avatarUrl ? (
+                                        <img src={avatarUrl} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    ) : (
+                                        <span style={{ color: '#fff', fontSize: '15px', fontWeight: 700 }}>{getInitials()}</span>
+                                    )}
+                                </div>
+                                <div style={{ overflow: 'hidden' }}>
+                                    <div style={{
+                                        color: '#fff', fontSize: '13px', fontWeight: 600,
+                                        fontFamily: 'Inter, sans-serif', whiteSpace: 'nowrap',
+                                        overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '140px'
+                                    }}>
+                                        {user?.name || 'User'}
+                                    </div>
+                                    <div style={{
+                                        color: 'rgba(255,255,255,0.45)', fontSize: '11px',
+                                        fontFamily: 'Inter, sans-serif', whiteSpace: 'nowrap',
+                                        overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '140px',
+                                        marginTop: '2px'
+                                    }}>
+                                        {user?.email || ''}
+                                    </div>
+                                </div>
                             </div>
 
                             {/* Divider */}
