@@ -1,46 +1,337 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+:root {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color-scheme: dark;
+  color: rgba(255, 255, 255, 0.9);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-text-size-adjust: 100%;
+  --spinner-animation-speed: 2s;
+  --glass-bg: rgba(255, 255, 255, 0.07);
+  --glass-border: rgba(255, 255, 255, 0.12);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.37);
+  --blur: blur(12px);
 }
 
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  background-color: #0c0e16;
-  color: #f1f1f1;
-  overflow: hidden;
+  padding: 0;
+  margin: 0;
+  background-color: #0f1117;
+}
+
+/* ── Rich Text Toolbar ──────────────────────── */
+.note-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 4px 8px;
+  border-bottom: 1px solid rgba(0,0,0,0.1);
+  background: rgba(255,255,255,0.05);
   user-select: none;
+  /* Default: white text for dark glassmorphism */
+  color: rgba(255,255,255,0.75);
+  flex-shrink: 0;
+  overflow: visible;
 }
 
-#app {
-  width: 100vw;
-  height: 100vh;
-  position: relative;
-  overflow: hidden;
+/* ── Rich Text Editor (contenteditable) ──────── */
+.note-editor {
+  background-color: transparent;
+  border: none;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 100px;
+  resize: none;
+  font-size: 15px;
+  font-family: 'Inter', sans-serif;
+  line-height: 1.6;
+  letter-spacing: 0.01em;
+  outline: none;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  /* Default: white text for dark glassmorphism classic notes */
+  color: rgba(255,255,255,0.9);
 }
 
-.card {
+.note-editor:empty::before {
+  content: attr(data-placeholder);
+  color: rgba(160,160,160,0.5);
+  pointer-events: none;
+}
+
+/* ── Inline Image Wrapper (Inside Editor) ──────── */
+.inline-img-wrapper {
+  display: block;
+  /* Now absolutely positioned for free dragging! */
   position: absolute;
-  border-radius: 8px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+  overflow: visible;
+  min-width: 50px;
+  min-height: 50px;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  transition: box-shadow 0.2s, outline 0.15s;
+  z-index: 10;
+  cursor: grab;
+}
+.inline-img-wrapper:active {
+  cursor: grabbing;
+}
+
+.inline-img-wrapper:hover {
+  outline: 2px solid rgba(140, 100, 255, 0.4);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+  z-index: 12;
+}
+.inline-img-wrapper.active-sticker {
+  outline: 2px solid rgba(140, 100, 255, 0.9);
+}
+
+.inline-img-wrapper img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  pointer-events: none; /* Let the wrapper handle drag */
+}
+
+.inline-img-del {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: rgba(255, 60, 60, 0.95);
+  color: white;
+  border: 1px solid rgba(255,255,255,0.5);
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 22px;
+  text-align: center;
+  opacity: 0;
+  transition: opacity 0.2s;
+  z-index: 10;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+}
+
+.inline-img-resize {
+  position: absolute;
+  bottom: -6px;
+  right: -6px;
+  width: 18px;
+  height: 18px;
+  background: white;
+  border: 2px solid rgba(140,100,255,0.9);
+  border-radius: 50%;
+  cursor: se-resize;
+  z-index: 11;
+  opacity: 0;
+  transition: opacity 0.2s;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+
+.inline-img-wrapper:hover .inline-img-del,
+.inline-img-wrapper:hover .inline-img-resize {
+  opacity: 1;
+}
+
+/* SVG shapes — resizable wrapper */
+.note-editor svg {
+  display: inline-block;
+  vertical-align: middle;
+  resize: both;
+  overflow: hidden;
+  min-width: 30px;
+  min-height: 30px;
+  cursor: default;
+}
+
+.note-editor ul, .note-editor ol {
+  margin: 6px 0;
+  padding-left: 22px;
+}
+
+.note-editor b, .note-editor strong { font-weight: 700; }
+.note-editor i, .note-editor em { font-style: italic; }
+.note-editor u { text-decoration: underline; }
+
+/* ── Canvas Image (standalone) ─────────────────── */
+.canvas-image {
+  z-index: 100;
+}
+.canvas-image:active {
+  cursor: grabbing !important;
+}
+
+
+/* ── Light-background templates: dark toolbar + editor ── */
+/* These templates have light/cream/pastel card bodies */
+.card.tpl-lined .note-toolbar,
+.card.tpl-nature .note-toolbar,
+.card.tpl-scrapbook .note-toolbar,
+.card.tpl-garden .note-toolbar,
+.card.tpl-fruit .note-toolbar,
+.card.tpl-todo .note-toolbar,
+.card.tpl-sweetday .note-toolbar,
+.card.tpl-rainbow .note-toolbar,
+.card.tpl-torn .note-toolbar,
+.card.tpl-idea .note-toolbar,
+.card.tpl-grid .note-toolbar,
+.card.tpl-heartplan .note-toolbar {
+  color: #3d3d3d !important;
+  border-bottom-color: rgba(0,0,0,0.12) !important;
+  background: rgba(0,0,0,0.04) !important;
+}
+
+/* Hover highlight for light-bg templates */
+.card.tpl-lined .note-toolbar button:hover,
+.card.tpl-nature .note-toolbar button:hover,
+.card.tpl-scrapbook .note-toolbar button:hover,
+.card.tpl-garden .note-toolbar button:hover,
+.card.tpl-fruit .note-toolbar button:hover,
+.card.tpl-todo .note-toolbar button:hover,
+.card.tpl-sweetday .note-toolbar button:hover,
+.card.tpl-rainbow .note-toolbar button:hover,
+.card.tpl-torn .note-toolbar button:hover,
+.card.tpl-idea .note-toolbar button:hover,
+.card.tpl-grid .note-toolbar button:hover,
+.card.tpl-heartplan .note-toolbar button:hover {
+  background: rgba(0,0,0,0.08) !important;
+}
+
+/* Dark templates: ensure white toolbar text */
+.card.tpl-stars .note-toolbar,
+.card.tpl-quote .note-toolbar {
+  color: rgba(200,220,255,0.8) !important;
+  border-bottom-color: rgba(255,255,255,0.1) !important;
+}
+
+
+/* ── Backgrounds ────────────────────────────── */
+#app {
+  min-height: 100vh;
+  position: relative;
+  overflow: auto;
+  transition: background-color 0.4s ease;
+  background-attachment: fixed;
+}
+
+#app.bg-dark {
+  background-color: #0f1117;
+  background-image:
+    radial-gradient(ellipse at 20% 50%, rgba(120, 40, 200, 0.08) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 20%, rgba(40, 120, 200, 0.08) 0%, transparent 60%),
+    linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+  background-size: auto, auto, 48px 48px, 48px 48px;
+}
+
+#app.bg-light {
+  background-color: #f5f6f8;
+  background-image:
+    radial-gradient(ellipse at 20% 50%, rgba(120, 40, 200, 0.03) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 20%, rgba(40, 120, 200, 0.03) 0%, transparent 60%);
+}
+
+#app.bg-corkboard {
+  background-color: #d4a373;
+  background-image: 
+    radial-gradient(rgba(0,0,0,0.05) 1px, transparent 1px),
+    radial-gradient(rgba(255,255,255,0.05) 1px, transparent 1px);
+  background-size: 20px 20px, 30px 30px;
+  background-position: 0 0, 15px 15px;
+}
+
+#app.bg-grid {
+  background-color: #e8f0fe;
+  background-image:
+    linear-gradient(rgba(80,140,240,0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(80,140,240,0.1) 1px, transparent 1px);
+  background-size: 30px 30px;
+}
+
+#app.bg-wood {
+  background-color: #8b5a2b;
+  background-image: repeating-linear-gradient(
+    45deg,
+    rgba(0,0,0,0.03) 0px, rgba(0,0,0,0.03) 2px,
+    transparent 2px, transparent 10px
+  );
+}
+
+
+/* ── Animations ─────────────────────────────── */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px) scale(0.95); }
+  to   { opacity: 1; transform: translateY(0)    scale(1); }
+}
+
+.spinner {
+  animation: spin var(--spinner-animation-speed) linear infinite;
+}
+
+/* ── Saving indicator ───────────────────────── */
+.card-saving {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+/* ── Note Card — Glassmorphism ──────────────── */
+.card {
+  width: 360px;
+  border-radius: 16px;
+  cursor: grab;
+  position: absolute;
+  /* NOTE: overflow is NOT hidden here so template emoji/decorations can stick out.
+     Text overflow is controlled at the .card-body and .note-editor level instead. */
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+  border: 1px solid var(--glass-border);
+  box-shadow:
+    0 4px 16px rgba(0,0,0,0.4),
+    0 1px 3px rgba(0,0,0,0.3),
+    inset 0 1px 0 rgba(255,255,255,0.1);
+  transition: box-shadow 0.3s ease, transform 0.15s ease;
+  animation: fadeInUp 0.35s ease forwards;
+  /* Flexbox to allow body to stretch when resized vertically */
   display: flex;
   flex-direction: column;
-  overflow: hidden;
-  transition: box-shadow 0.2s ease;
 }
 
 .card:hover {
-  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+  box-shadow:
+    0 12px 40px rgba(0,0,0,0.5),
+    0 2px 8px rgba(0,0,0,0.4),
+    inset 0 1px 0 rgba(255,255,255,0.15);
 }
 
+.card:active {
+  cursor: grabbing;
+}
+
+/* ── Card Header ────────────────────────────── */
 .card-header {
-  padding: 10px 14px;
+  border-radius: 16px 16px 0 0;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 10px 12px;
   cursor: grab;
+  flex-shrink: 0;
 }
 
 .card-header:active {
@@ -48,93 +339,913 @@ body {
 }
 
 .card-body {
-  padding: 12px 14px;
-  flex-grow: 1;
+  padding: 0 0 8px 0;
+  border-radius: 0 0 16px 16px;
+  /* Stretch to fill remaining card height */
+  flex: 1;
   display: flex;
   flex-direction: column;
+  overflow: hidden !important;
+  min-width: 0;
 }
 
-textarea {
-  background-color: inherit;
+/* Universal: EVERY template's note-editor must clip text properly */
+.card .note-editor,
+.card-body .note-editor {
+  padding: 10px 14px;
+  box-sizing: border-box !important;
+  /* Editor takes up all available space and pushes AI tools down */
+  flex: 1;
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow-y: auto;
+  overflow-x: hidden !important;
+  position: relative;
+  min-width: 0;
+  word-break: break-word !important;
+  overflow-wrap: break-word !important;
+}
+
+/* ── AI Tools ──────────────────────────────── */
+.ai-tools-bar {
+  padding: 4px 12px;
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.ai-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 4px 10px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.ai-btn:hover {
+  background: rgba(140, 100, 255, 0.15);
+  border-color: rgba(140, 100, 255, 0.4);
+}
+
+/* ── Toolbar Separator ─────────────────────────── */
+.toolbar-sep {
+  display: inline-block;
+  width: 1px;
+  height: 16px;
+  background: currentColor;
+  opacity: 0.15;
+  margin: 0 2px;
+  vertical-align: middle;
+}
+
+/* ── Resize Handles ────────────────────────────── */
+.card {
+  position: absolute; /* ensure positioning for handles */
+}
+
+/* Right edge */
+.resize-handle.resize-e {
+  position: absolute;
+  top: 20px;
+  right: -4px;
+  width: 8px;
+  height: calc(100% - 40px);
+  cursor: ew-resize;
+  z-index: 20;
+  border-radius: 4px;
+  background: transparent;
+  transition: background 0.2s;
+}
+.resize-handle.resize-e:hover,
+.resize-handle.resize-e:active {
+  background: rgba(140,100,255,0.35);
+}
+
+/* Bottom edge */
+.resize-handle.resize-s {
+  position: absolute;
+  bottom: -4px;
+  left: 20px;
+  height: 8px;
+  width: calc(100% - 40px);
+  cursor: ns-resize;
+  z-index: 20;
+  border-radius: 4px;
+  background: transparent;
+  transition: background 0.2s;
+}
+.resize-handle.resize-s:hover,
+.resize-handle.resize-s:active {
+  background: rgba(140,100,255,0.35);
+}
+
+/* Bottom-right corner — main resize handle */
+.resize-handle.resize-se {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 18px;
+  height: 18px;
+  cursor: se-resize;
+  z-index: 21;
+  border-radius: 0 0 14px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.resize-handle.resize-se::after {
+  content: '';
+  display: block;
+  width: 10px;
+  height: 10px;
+  border-right: 2.5px solid rgba(140,100,255,0.5);
+  border-bottom: 2.5px solid rgba(140,100,255,0.5);
+  border-radius: 0 0 3px 0;
+  transition: border-color 0.2s;
+}
+.resize-handle.resize-se:hover::after,
+.resize-handle.resize-se:active::after {
+  border-color: rgba(140,100,255,1);
+}
+
+/* ── Shape/Insert styles inside editor ─────────── */
+.note-editor hr {
   border: none;
-  resize: none;
-  width: 100%;
-  height: 100%;
-  outline: none;
-  font-family: inherit;
-  font-size: 14px;
-  line-height: 1.5;
-  color: inherit;
+  border-top: 2px solid currentColor;
+  opacity: 0.3;
+  margin: 8px 0;
 }
 
-/* Canvas Backgrounds */
-.bg-dark {
-  background-color: #0c0e16;
-}
-.bg-dots {
-  background-color: #0f121d;
-  background-image: radial-gradient(rgba(255, 255, 255, 0.15) 1px, transparent 1px);
-  background-size: 24px 24px;
-}
-.bg-grid {
-  background-color: #0d1117;
-  background-image: linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
-                    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
-  background-size: 30px 30px;
-}
-.bg-blueprint {
-  background-color: #102a45;
-  background-image: linear-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px),
-                    linear-gradient(90deg, rgba(255, 255, 255, 0.08) 1px, transparent 1px);
-  background-size: 20px 20px;
-}
-.bg-corkboard {
-  background-color: #7a5230;
-  background-image: radial-gradient(#634125 15%, transparent 16%), radial-gradient(#634125 15%, transparent 16%);
-  background-size: 20px 20px;
-  background-position: 0 0, 10px 10px;
+.note-editor svg {
+  display: inline;
+  vertical-align: middle;
+  max-width: 60px;
+  cursor: pointer;
 }
 
-/* Canvas controls dock layout */
+.note-editor input[type="checkbox"] {
+  cursor: pointer;
+  width: 15px;
+  height: 15px;
+  accent-color: #8c64ff;
+  vertical-align: middle;
+}
+
+
+/* ── Controls Sidebar — Glassmorphism ───────── */
 #controls {
   display: flex;
   flex-direction: column;
-  gap: 0.8em;
+  gap: 12px;
+  align-items: center;
   position: fixed;
-  left: 1.5em;
+  left: 16px;
   top: 50%;
   transform: translateY(-50%);
-  background-color: rgba(25, 27, 38, 0.7);
-  backdrop-filter: blur(12px);
-  padding: 0.8em;
-  border-radius: 20px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  z-index: 10000;
+  background: rgba(20, 22, 32, 0.75);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+  padding: 16px 12px;
+  border-radius: 50px;
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  z-index: 10001;
 }
 
-.resize-handle {
+/* ── Add Button ─────────────────────────────── */
+#add-btn {
+  background: linear-gradient(135deg, rgba(140,100,255,0.7), rgba(80,160,255,0.7));
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 44px;
+  width: 44px;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 1px solid rgba(255,255,255,0.2);
+  box-shadow: 0 4px 15px rgba(120, 80, 255, 0.4);
+}
+
+#add-btn:hover {
+  transform: scale(1.12);
+  box-shadow: 0 6px 20px rgba(120, 80, 255, 0.6);
+}
+
+/* ── Color Swatches ─────────────────────────── */
+.color {
+  height: 36px;
+  width: 36px;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  border: 2px solid rgba(255,255,255,0.15);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+.color:hover {
+  transform: scale(1.2);
+  border-color: rgba(255,255,255,0.5);
+  box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+}
+
+/* ── Search Bar ─────────────────────────────── */
+#search-bar {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  width: min(480px, calc(100vw - 120px));
+}
+
+#search-bar input {
+  width: 100%;
+  box-sizing: border-box;
+  background: rgba(20, 22, 32, 0.75);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+  border: 1px solid var(--glass-border);
+  border-radius: 50px;
+  padding: 12px 20px 12px 48px;
+  font-size: 15px;
+  font-family: 'Inter', sans-serif;
+  color: rgba(255, 255, 255, 0.9);
+  outline: none;
+  transition: all 0.3s ease;
+  box-shadow: var(--glass-shadow);
+}
+
+#search-bar input::placeholder {
+  color: rgba(255, 255, 255, 0.35);
+}
+
+#search-bar input:focus {
+  border-color: rgba(140, 100, 255, 0.6);
+  box-shadow: 0 0 0 3px rgba(140, 100, 255, 0.2), var(--glass-shadow);
+  background: rgba(20, 22, 32, 0.9);
+}
+
+#search-bar .search-icon {
   position: absolute;
-  z-index: 20;
+  left: 18px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 18px;
+  pointer-events: none;
 }
-.resize-e {
-  right: 0;
-  top: 0;
-  bottom: 0;
-  width: 8px;
-  cursor: ew-resize;
+
+/* ── Delete Button ──────────────────────────── */
+.delete-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.2s, transform 0.2s;
+  padding: 4px;
+  border-radius: 6px;
 }
-.resize-s {
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 8px;
-  cursor: ns-resize;
+
+.delete-btn:hover {
+  opacity: 1;
+  transform: scale(1.1);
 }
-.resize-se {
-  right: 0;
-  bottom: 0;
-  width: 14px;
-  height: 14px;
-  cursor: nwse-resize;
+
+/* ── AI Tools Bar ───────────────────────────── */
+.ai-tools-bar {
+  display: flex;
+  gap: 6px;
+  padding: 8px 0 4px 0;
+  border-top: 1px solid rgba(255,255,255,0.1);
+  margin-top: 8px;
+  align-items: center;
+  flex-wrap: wrap;
 }
+
+.ai-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  letter-spacing: 0.02em;
+}
+
+.ai-btn:hover {
+  background: rgba(140, 100, 255, 0.3);
+  border-color: rgba(140, 100, 255, 0.6);
+  transform: translateY(-1px);
+}
+
+/* ── Export/Import Buttons ──────────────────── */
+.export-import-btn {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.25s ease;
+  color: white;
+}
+
+.export-import-btn:hover {
+  background: rgba(255,255,255,0.18);
+  transform: scale(1.1);
+}
+
+/* ── Responsive adjustments ─────────────────── */
+@media (max-width: 768px) {
+  .card {
+    width: calc(100vw - 100px);
+    min-width: 240px;
+  }
+
+  #controls {
+    left: 8px;
+    padding: 10px 8px;
+  }
+}
+
+/* ═══════════════════════════════════════════════
+   NOTE TEMPLATES
+   ═══════════════════════════════════════════════ */
+
+/* ── Template: Classic (default glassmorphism) ─ */
+.card.tpl-classic { /* inherits base .card */ }
+
+/* ── Template: Lined Paper ───────────────────── */
+.card.tpl-lined {
+  background-color: #fdf8f0 !important;
+  border: 1px solid #e8d8c0;
+  border-radius: 12px;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15), 3px 3px 0 rgba(0,0,0,0.06);
+}
+.card.tpl-lined .card-header {
+  background-color: #f5ead8 !important;
+  border-bottom: 2px solid #d4a574;
+  border-radius: 12px 12px 0 0;
+}
+.card.tpl-lined .card-body {
+  background: repeating-linear-gradient(
+    transparent, transparent 29px,
+    #c8a882 29px, #c8a882 30px
+  );
+  background-color: #fdf8f0;
+  padding-top: 10px;
+  position: relative;
+}
+.card.tpl-lined .card-body::before {
+  content: '🌸';
+  position: absolute;
+  bottom: 8px; left: 10px;
+  font-size: 32px; opacity: 0.5;
+  pointer-events: none;
+}
+.card.tpl-lined .card-body::after {
+  content: '💕';
+  position: absolute;
+  top: 8px; right: 10px;
+  font-size: 22px; opacity: 0.45;
+  pointer-events: none;
+}
+.card.tpl-lined .note-editor {
+  color: #5a3e28 !important;
+  font-family: 'Georgia', serif;
+  line-height: 30px;
+  background: transparent;
+}
+
+/* ── Template: Nature / Botanical ────────────── */
+.card.tpl-nature {
+  background-color: #d4dfc5 !important;
+  border: none;
+  border-radius: 24px;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: 6px 6px 0 #5a7a3a, 0 8px 24px rgba(0,0,0,0.2);
+  overflow: visible !important;
+}
+.card.tpl-nature::before {
+  content: '🌿';
+  position: absolute;
+  top: -18px; left: 16px;
+  font-size: 40px;
+  transform: rotate(-20deg);
+  z-index: 10;
+  pointer-events: none;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+}
+.card.tpl-nature::after {
+  content: '';
+  position: absolute;
+  top: -6px; left: 30px;
+  width: 60px; height: 14px;
+  background: repeating-linear-gradient(
+    45deg,
+    rgba(150,180,100,0.6), rgba(150,180,100,0.6) 4px,
+    rgba(200,220,160,0.6) 4px, rgba(200,220,160,0.6) 8px
+  );
+  border-radius: 3px;
+  z-index: 9;
+  transform: rotate(-2deg);
+}
+.card.tpl-nature .card-header {
+  background-color: #c5d4b0 !important;
+  border-bottom: 1px dashed #8aaa6a;
+  border-radius: 24px 24px 0 0;
+}
+.card.tpl-nature .card-body {
+  background: repeating-linear-gradient(
+    transparent, transparent 26px,
+    rgba(90,122,58,0.2) 26px, rgba(90,122,58,0.2) 27px
+  );
+  background-color: #d4dfc5;
+  border-radius: 0 0 24px 24px;
+}
+.card.tpl-nature .note-editor {
+  color: #2d4a1a !important;
+  line-height: 27px;
+  background: transparent;
+}
+
+/* ── Template: Quote Card ────────────────────── */
+.card.tpl-quote {
+  background-color: #5a7a5a !important;
+  border: none;
+  border-radius: 12px;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.3);
+  overflow: visible !important;
+}
+.card.tpl-quote .card-header {
+  background-color: #4a6a4a !important;
+  border-bottom: 1px solid rgba(255,255,255,0.15);
+  border-radius: 12px 12px 0 0;
+  position: relative;
+  padding-left: 32px;
+}
+.card.tpl-quote .card-header::before {
+  content: '\201C';
+  font-size: 64px;
+  line-height: 1;
+  color: #1a1a1a;
+  font-family: Georgia, serif;
+  position: absolute;
+  top: -12px; left: 0px;
+  pointer-events: none;
+}
+.card.tpl-quote .card-body {
+  position: relative;
+  background-color: #5a7a5a;
+  border-radius: 0 0 12px 12px;
+}
+.card.tpl-quote .card-body::before {
+  content: '';
+  position: absolute;
+  top: -8px; left: -8px; right: -8px; bottom: -8px;
+  border: 2px solid #1a1a1a;
+  border-radius: 16px;
+  pointer-events: none;
+  z-index: 0;
+}
+.card.tpl-quote .card-body::after {
+  content: '\201D';
+  font-size: 64px; line-height: 1;
+  color: #1a1a1a;
+  font-family: Georgia, serif;
+  position: absolute;
+  bottom: -24px; right: 2px;
+  pointer-events: none;
+  z-index: 5;
+}
+.card.tpl-quote .note-editor {
+  color: #f0f5f0 !important;
+  font-family: 'Georgia', serif;
+  font-style: italic;
+  font-size: 16px;
+  letter-spacing: 0.02em;
+  line-height: 1.7;
+  background: transparent;
+}
+
+/* ── Template: Scrapbook ─────────────────────── */
+.card.tpl-scrapbook {
+  background-color: #ffffff !important;
+  border: 3px dashed #a78bfa;
+  border-radius: 8px 20px 8px 20px;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: 0 4px 0 #c4b5fd, 0 6px 20px rgba(0,0,0,0.15);
+  overflow: visible !important;
+}
+.card.tpl-scrapbook::before {
+  content: '📎';
+  position: absolute;
+  top: -16px; right: 20px;
+  font-size: 28px;
+  transform: rotate(30deg);
+  z-index: 10;
+  pointer-events: none;
+}
+.card.tpl-scrapbook::after {
+  content: '⭐';
+  position: absolute;
+  bottom: -10px; left: 16px;
+  font-size: 22px;
+  z-index: 10;
+  pointer-events: none;
+}
+.card.tpl-scrapbook .card-header {
+  background: linear-gradient(90deg, #e0d4fb, #fce7f3) !important;
+  border-bottom: 2px solid #d8b4fe;
+  border-radius: 5px 17px 0 0;
+}
+.card.tpl-scrapbook .card-body {
+  background-color: #ffffff;
+  border-radius: 0 0 5px 17px;
+}
+.card.tpl-scrapbook .note-editor {
+  color: #4a3a5a !important;
+  background: transparent;
+}
+.card.tpl-scrapbook .ai-btn {
+  border-color: #c4b5fd;
+  color: #6d28d9;
+}
+.card.tpl-scrapbook .ai-btn:hover {
+  background: rgba(167,139,250,0.2);
+  border-color: #7c3aed;
+}
+
+/* ── Template: Garden (green dashed floral) ──── */
+.card.tpl-garden {
+  background-color: #f4faf0 !important;
+  border: 2px dashed #7aba6a;
+  border-radius: 10px;
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+  overflow: visible !important;
+}
+.card.tpl-garden::before {
+  content: '🌳';
+  position: absolute; bottom: -10px; left: 8px;
+  font-size: 28px; pointer-events: none; z-index: 5;
+}
+.card.tpl-garden::after {
+  content: '🌺';
+  position: absolute; top: -12px; right: 10px;
+  font-size: 24px; pointer-events: none; z-index: 5;
+  transform: rotate(15deg);
+}
+.card.tpl-garden .card-header {
+  background: linear-gradient(135deg, #c8e6b0, #a8d890) !important;
+  border-bottom: 2px dashed #7aba6a;
+  border-radius: 8px 8px 0 0;
+}
+.card.tpl-garden .card-body {
+  background: repeating-linear-gradient(transparent, transparent 26px, #b2d8a0 26px, #b2d8a0 27px);
+  background-color: #f4faf0;
+  border-radius: 0 0 8px 8px;
+}
+.card.tpl-garden .note-editor { color: #2a5a1a !important; line-height: 27px; background: transparent; }
+
+/* ── Template: Stars / Be Happy ─────────────── */
+.card.tpl-stars {
+  background: linear-gradient(160deg, #1a1a3a 0%, #2a2a5a 60%, #1a2a4a 100%) !important;
+  border: 1px solid rgba(200,200,255,0.2);
+  border-radius: 14px;
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+  box-shadow: 0 6px 30px rgba(0,0,80,0.4), inset 0 1px 0 rgba(255,255,255,0.08);
+  overflow: visible !important;
+}
+.card.tpl-stars::before {
+  content: '🌙';
+  position: absolute; top: -14px; right: 12px;
+  font-size: 28px; pointer-events: none; z-index: 5;
+}
+.card.tpl-stars .card-header {
+  background: rgba(255,255,255,0.07) !important;
+  border-bottom: 1px solid rgba(200,200,255,0.15);
+  border-radius: 14px 14px 0 0;
+}
+.card.tpl-stars .card-header::after {
+  content: 'BE HAPPY ✨';
+  color: rgba(200,220,255,0.5);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  font-weight: 600;
+  position: absolute; right: 48px;
+}
+.card.tpl-stars .card-body {
+  background-color: transparent;
+  position: relative;
+}
+.card.tpl-stars .card-body::before {
+  content: '⭐ ✦ ✧ ✦ ⭐ ✦ ✧ ✦ ⭐ ✦';
+  position: absolute; bottom: 8px; left: 8px; right: 8px;
+  font-size: 10px; color: rgba(200,220,255,0.25);
+  letter-spacing: 4px; pointer-events: none;
+  overflow: hidden; white-space: nowrap;
+}
+.card.tpl-stars .note-editor { color: #c8d8ff !important; background: transparent; font-family: 'Inter', sans-serif; }
+
+/* ── Template: Fruity (pink with fruits) ─────── */
+.card.tpl-fruit {
+  background-color: #fff0f4 !important;
+  border: 2px solid #f9c0d0;
+  border-radius: 16px;
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+  box-shadow: 0 4px 16px rgba(240,100,130,0.15);
+  overflow: visible !important;
+}
+.card.tpl-fruit::before {
+  content: '🍓';
+  position: absolute; top: -14px; left: 10px;
+  font-size: 28px; pointer-events: none; z-index: 5;
+}
+.card.tpl-fruit::after {
+  content: '🍒';
+  position: absolute; top: -10px; right: 12px;
+  font-size: 22px; pointer-events: none; z-index: 5;
+}
+.card.tpl-fruit .card-header {
+  background: linear-gradient(90deg, #ffd6e0, #ffc8d8) !important;
+  border-bottom: 2px solid #f9c0d0;
+  border-radius: 14px 14px 0 0;
+}
+.card.tpl-fruit .card-body {
+  background: repeating-linear-gradient(transparent, transparent 27px, #f9c0d0 27px, #f9c0d0 28px);
+  background-color: #fff0f4;
+  border-radius: 0 0 14px 14px;
+  position: relative;
+}
+.card.tpl-fruit .card-body::after {
+  content: '🌸';
+  position: absolute; bottom: 6px; right: 8px;
+  font-size: 20px; opacity: 0.4; pointer-events: none;
+}
+.card.tpl-fruit .note-editor { color: #8a2a40 !important; line-height: 28px; background: transparent; }
+
+/* ── Template: To-Do List ────────────────────── */
+.card.tpl-todo {
+  background-color: #f8fff8 !important;
+  border: 1px solid #a0d8a0;
+  border-radius: 10px;
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+  box-shadow: 0 2px 12px rgba(0,120,0,0.1);
+}
+.card.tpl-todo .card-header {
+  background: linear-gradient(90deg, #4caf80, #3a9a6a) !important;
+  border-radius: 9px 9px 0 0;
+  border-bottom: none;
+}
+.card.tpl-todo .card-header::after {
+  content: '✅ TO-DO LIST';
+  color: rgba(255,255,255,0.9);
+  font-size: 11px; font-weight: 700;
+  letter-spacing: 0.12em;
+  position: absolute; left: 50%; transform: translateX(-50%);
+}
+.card.tpl-todo .card-body {
+  background-color: #f8fff8;
+  counter-reset: todo-counter;
+}
+/* Simulate checkbox lines */
+.card.tpl-todo .note-editor {
+  color: #1a4a2a !important;
+  background: repeating-linear-gradient(transparent, transparent 27px, #c8e8c8 27px, #c8e8c8 28px);
+  line-height: 28px;
+  padding-left: 4px;
+}
+
+/* ── Template: Sweet Day (yellow doodle) ─────── */
+.card.tpl-sweetday {
+  background-color: #fffde7 !important;
+  border: 2px solid #ffd54f;
+  border-radius: 12px;
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+  box-shadow: 0 4px 16px rgba(255,200,0,0.2), 3px 3px 0 #ffc107;
+  overflow: visible !important;
+}
+.card.tpl-sweetday::before {
+  content: '☀️';
+  position: absolute; top: -14px; left: 10px;
+  font-size: 28px; pointer-events: none; z-index: 5;
+}
+.card.tpl-sweetday::after {
+  content: '🍋';
+  position: absolute; bottom: -10px; right: 12px;
+  font-size: 22px; pointer-events: none; z-index: 5;
+}
+.card.tpl-sweetday .card-header {
+  background: linear-gradient(90deg, #ffe082, #ffd54f) !important;
+  border-bottom: 2px solid #ffc107;
+  border-radius: 10px 10px 0 0;
+}
+.card.tpl-sweetday .card-header::before {
+  content: '✦ sweet day ✦';
+  color: #bf8700; font-size: 10px;
+  font-weight: 600; letter-spacing: 0.15em;
+  font-style: italic;
+  position: absolute; left: 50%; transform: translateX(-50%);
+}
+.card.tpl-sweetday .card-body {
+  background: repeating-linear-gradient(transparent, transparent 26px, #ffe082 26px, #ffe082 27px);
+  background-color: #fffde7;
+  border-radius: 0 0 10px 10px;
+}
+.card.tpl-sweetday .note-editor { color: #5a4000 !important; line-height: 27px; background: transparent; }
+
+/* ── Template: Rainbow To-Do ─────────────────── */
+.card.tpl-rainbow {
+  background-color: #fafafa !important;
+  border: none;
+  border-radius: 14px;
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+  box-shadow: 0 4px 0 #e0e0e0, 0 6px 20px rgba(0,0,0,0.12);
+  overflow: visible !important;
+}
+.card.tpl-rainbow .card-header {
+  background: linear-gradient(90deg, #ff8a80, #ffab40, #fff176, #a5d6a7, #80d8ff, #cf94da) !important;
+  border-radius: 14px 14px 0 0;
+}
+.card.tpl-rainbow .card-header::after {
+  content: '🌈';
+  position: absolute; left: 50%; transform: translateX(-50%);
+  font-size: 18px;
+}
+.card.tpl-rainbow .card-body {
+  background-color: #fafafa;
+  border-radius: 0 0 14px 14px;
+  position: relative;
+}
+.card.tpl-rainbow .card-body::before {
+  content: '🌸 🌼 🌷';
+  position: absolute; bottom: 8px; right: 8px;
+  font-size: 14px; opacity: 0.5; pointer-events: none;
+}
+.card.tpl-rainbow .note-editor {
+  color: #333 !important;
+  background: repeating-linear-gradient(transparent, transparent 26px, rgba(150,150,255,0.15) 26px, rgba(150,150,255,0.15) 27px);
+}
+
+/* ── Template: Torn Paper ────────────────────── */
+.card.tpl-torn {
+  background-color: #ffffff !important;
+  border: none;
+  border-radius: 4px;
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+  box-shadow: 0 3px 12px rgba(0,0,0,0.15), 0 1px 4px rgba(0,0,0,0.1);
+}
+.card.tpl-torn .card-header {
+  background-color: #6ec6e8 !important;
+  border-radius: 4px 4px 0 0;
+  border-bottom: none;
+  clip-path: polygon(
+    0% 0%, 3% 100%, 6% 0%, 9% 100%, 12% 0%, 15% 100%,
+    18% 0%, 21% 100%, 24% 0%, 27% 100%, 30% 0%, 33% 100%,
+    36% 0%, 39% 100%, 42% 0%, 45% 100%, 48% 0%, 51% 100%,
+    54% 0%, 57% 100%, 60% 0%, 63% 100%, 66% 0%, 69% 100%,
+    72% 0%, 75% 100%, 78% 0%, 81% 100%, 84% 0%, 87% 100%,
+    90% 0%, 93% 100%, 96% 0%, 100% 100%, 100% 0%
+  );
+  padding-bottom: 12px;
+}
+.card.tpl-torn .card-body {
+  background: repeating-linear-gradient(transparent, transparent 26px, #b8e0f0 26px, #b8e0f0 27px);
+  background-color: #ffffff;
+  border-radius: 0 0 4px 4px;
+}
+.card.tpl-torn .note-editor { color: #1a3a4a !important; line-height: 27px; background: transparent; }
+
+/* ── Template: Idea / Doodle ─────────────────── */
+.card.tpl-idea {
+  background-color: #e8f8f8 !important;
+  border: 2px solid #6ec6c6;
+  border-radius: 10px;
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+  box-shadow: 0 4px 16px rgba(0,150,150,0.15);
+  overflow: visible !important;
+}
+.card.tpl-idea::before {
+  content: '💡';
+  position: absolute; top: -16px; right: 12px;
+  font-size: 30px; pointer-events: none; z-index: 5;
+}
+.card.tpl-idea .card-header {
+  background: linear-gradient(90deg, #4ec6c6, #3ab0b0) !important;
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
+}
+.card.tpl-idea .card-header::after {
+  content: '☁️ ideas';
+  color: rgba(255,255,255,0.8);
+  font-size: 11px; font-weight: 600;
+  letter-spacing: 0.1em; font-style: italic;
+  position: absolute; left: 50%; transform: translateX(-50%);
+}
+.card.tpl-idea .card-body {
+  background: repeating-linear-gradient(transparent, transparent 27px, #a8e0e0 27px, #a8e0e0 28px);
+  background-color: #e8f8f8;
+  border-radius: 0 0 8px 8px;
+  position: relative;
+}
+.card.tpl-idea .card-body::after {
+  content: '😊';
+  position: absolute; bottom: 8px; right: 10px;
+  font-size: 20px; opacity: 0.4; pointer-events: none;
+}
+.card.tpl-idea .note-editor { color: #0a4040 !important; line-height: 28px; background: transparent; }
+
+/* ── Template: Grid / Graph Paper ───────────── */
+.card.tpl-grid {
+  background-color: #f8faff !important;
+  border: 1px solid #c8d8f0;
+  border-radius: 8px;
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+  box-shadow: 0 2px 10px rgba(80,120,200,0.1);
+  overflow: visible !important;
+}
+.card.tpl-grid::before {
+  content: '📐';
+  position: absolute; top: -12px; right: 10px;
+  font-size: 20px; pointer-events: none; z-index: 5;
+}
+.card.tpl-grid .card-header {
+  background: linear-gradient(90deg, #c8d8f8, #b0c8f0) !important;
+  border-bottom: 2px solid #90b0e0;
+  border-radius: 6px 6px 0 0;
+}
+.card.tpl-grid .card-header::before {
+  content: '✦ notes ✦';
+  color: rgba(60,80,160,0.6);
+  font-size: 10px; letter-spacing: 0.2em;
+  font-weight: 600;
+  position: absolute; left: 50%; transform: translateX(-50%);
+}
+.card.tpl-grid .card-body {
+  background-image:
+    linear-gradient(rgba(100,140,220,0.15) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(100,140,220,0.15) 1px, transparent 1px);
+  background-size: 24px 24px;
+  background-color: #f8faff;
+  border-radius: 0 0 6px 6px;
+}
+.card.tpl-grid .note-editor { color: #1a2a5a !important; background: transparent; }
+
+/* ── Template: Heart Plans ───────────────────── */
+.card.tpl-heartplan {
+  background-color: #fff5f8 !important;
+  border: 2px solid #f4a0b8;
+  border-radius: 16px;
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+  box-shadow: 0 4px 20px rgba(240,100,140,0.2);
+  overflow: visible !important;
+}
+.card.tpl-heartplan::before {
+  content: '💗';
+  position: absolute; top: -14px; left: 12px;
+  font-size: 28px; pointer-events: none; z-index: 5;
+}
+.card.tpl-heartplan::after {
+  content: '💕';
+  position: absolute; bottom: -10px; right: 14px;
+  font-size: 20px; pointer-events: none; z-index: 5;
+}
+.card.tpl-heartplan .card-header {
+  background: linear-gradient(90deg, #f9c0d0, #f4a8c0) !important;
+  border-bottom: 2px solid #f090b0;
+  border-radius: 14px 14px 0 0;
+}
+.card.tpl-heartplan .card-header::after {
+  content: '♡ my plans ♡';
+  color: rgba(160,20,60,0.6);
+  font-size: 11px; font-weight: 600;
+  letter-spacing: 0.12em; font-style: italic;
+  position: absolute; left: 50%; transform: translateX(-50%);
+}
+.card.tpl-heartplan .card-body {
+  background: repeating-linear-gradient(transparent, transparent 27px, #f4a8c0 27px, #f4a8c0 28px);
+  background-color: #fff5f8;
+  border-radius: 0 0 14px 14px;
+  position: relative;
+}
+.card.tpl-heartplan .card-body::before {
+  content: '🌸';
+  position: absolute; bottom: 8px; left: 10px;
+  font-size: 18px; opacity: 0.4; pointer-events: none;
+}
+.card.tpl-heartplan .note-editor { color: #8a1a38 !important; line-height: 28px; background: transparent; }
